@@ -1,0 +1,733 @@
+{% extends "base.html" %}
+
+{% block title %}ToolShare - Panel{% endblock %}
+
+{% block content %}
+<!-- Arama Bolumu -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form action="/tools/search" method="GET" class="row g-3 align-items-end">
+            <div class="col-md-9">
+                <label for="search-query" class="form-label">Alet Ara</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" id="search-query" name="q"
+                        value="{{ search_query|default('', true) }}"
+                        placeholder="Alet adi veya kategori ile arama yapin...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-2"></i>Ara
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if search_results is defined and search_results %}
+<!-- Arama Sonuclari -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Arama Sonuclari</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Alet Adi</th>
+                        <th>Kategori</th>
+                        <th>Durum</th>
+                        <th>Sahip</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tool in search_results %}
+                    <tr>
+                        <td>{{ tool[0] }}</td>
+                        <td>{{ tool[2] }}</td>
+                        <td>{{ tool[4] }}</td>
+                        <td>
+                            <span
+                                class="badge bg-{% if tool[5] == 'available' %}success{% elif tool[5] == 'reserved' %}warning{% else %}secondary{% endif %}">
+                                {% if tool[5] == 'available' %}Musait{% elif tool[5] == 'reserved' %}Rezerve{% else
+                                %}Bakim{% endif %}
+                            </span>
+                        </td>
+                        <td>{{ tool[8] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Sekme Navigasyonu -->
+<ul class="nav nav-tabs mb-4" id="dashboardTabs" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active" id="tools-tab" data-bs-toggle="tab" data-bs-target="#tools" type="button">
+            <i class="bi bi-tools me-1"></i>Aletler
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" id="reservations-tab" data-bs-toggle="tab" data-bs-target="#reservations"
+            type="button">
+            <i class="bi bi-calendar me-1"></i>Rezervasyonlar
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" id="ratings-tab" data-bs-toggle="tab" data-bs-target="#ratings" type="button">
+            <i class="bi bi-star me-1"></i>Puanlar
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button">
+            <i class="bi bi-graph-up me-1"></i>Raporlar
+        </button>
+    </li>
+    {% if user.role == 'admin' %}
+    <li class="nav-item">
+        <button class="nav-link" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin" type="button">
+            <i class="bi bi-shield-lock me-1"></i>Yonetim
+        </button>
+    </li>
+    {% endif %}
+</ul>
+
+<div class="tab-content" id="dashboardTabContent">
+    <!-- ALETLER SEKMESI -->
+    <div class="tab-pane fade show active" id="tools" role="tabpanel">
+        <div class="row g-4">
+            <!-- Yeni Alet Ekle -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Yeni Alet Ekle</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="/tools/add" method="POST">
+                            <div class="mb-3">
+                                <label for="tool-name" class="form-label">Alet Adi</label>
+                                <input type="text" class="form-control" id="tool-name" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="tool-desc" class="form-label">Aciklama</label>
+                                <textarea class="form-control" id="tool-desc" name="description" rows="2"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="tool-category" class="form-label">Kategori</label>
+                                <select class="form-select" id="tool-category" name="category">
+                                    <option value="Elektrikli Alet">Elektrikli Alet</option>
+                                    <option value="El Aleti">El Aleti</option>
+                                    <option value="Bahce">Bahce</option>
+                                    <option value="Insaat">Insaat</option>
+                                    <option value="Temizlik">Temizlik</option>
+                                    <option value="Otomotiv">Otomotiv</option>
+                                    <option value="Diger">Diger</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-plus-circle me-2"></i>Alet Ekle
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aletlerim -->
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-collection me-2"></i>Aletlerim</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if my_tools %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Alet Adi</th>
+                                        <th>Kategori</th>
+                                        <th>Durum</th>
+                                        <th>Islemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for tool in my_tools %}
+                                    <tr>
+                                        <td>{{ tool[0] }}</td>
+                                        <td>{{ tool[2] }}</td>
+                                        <td>{{ tool[4] }}</td>
+                                        <td>
+                                            <span
+                                                class="badge bg-{% if tool[5] == 'available' %}success{% elif tool[5] == 'reserved' %}warning{% else %}secondary{% endif %}">
+                                                {% if tool[5] == 'available' %}Musait{% elif tool[5] == 'reserved'
+                                                %}Rezerve{% else %}Bakim{% endif %}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <form action="/tools/delete/{{ tool[0] }}" method="POST" class="d-inline"
+                                                onsubmit="return confirm('Bu aleti silmek istediginizden emin misiniz?');">
+                                                <button type="submit" class="btn btn-danger btn-sm">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center mb-0">Henuz alet eklemediniz.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Musait Aletler -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-grid me-2"></i>Musait Aletler
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if available_tools %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Alet Adi</th>
+                                <th>Aciklama</th>
+                                <th>Kategori</th>
+                                <th>Sahip</th>
+                                <th>Guven Puani</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tool in available_tools %}
+                            <tr>
+                                <td>{{ tool[0] }}</td>
+                                <td><strong>{{ tool[1] }}</strong></td>
+                                <td>{{ tool[2]|truncate(50) if tool[2] else '-' }}</td>
+                                <td>{{ tool[3] }}</td>
+                                <td>{{ tool[4] }}</td>
+                                <td>
+                                    <span class="trust-score">
+                                        <i class="bi bi-star-fill"></i>
+                                        {{ "%.2f"|format(tool[5]) if tool[5] else '0.00' }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center mb-0">Su anda musait alet bulunmuyor.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- REZERVASYONLAR SEKMESI -->
+    <div class="tab-pane fade" id="reservations" role="tabpanel">
+        <div class="row g-4">
+            <!-- Rezervasyon Olustur -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-calendar-plus me-2"></i>Yeni Rezervasyon</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="/reservations/add" method="POST">
+                            <div class="mb-3">
+                                <label for="res-tool" class="form-label">Alet Sec</label>
+                                <select class="form-select" id="res-tool" name="tool_id" required>
+                                    <option value="">-- Alet secin --</option>
+                                    {% for tool in all_available_tools %}
+                                    <option value="{{ tool[0] }}">{{ tool[1] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="res-start" class="form-label">Baslangic Tarihi</label>
+                                <input type="date" class="form-control" id="res-start" name="start_date" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="res-end" class="form-label">Bitis Tarihi</label>
+                                <input type="date" class="form-control" id="res-end" name="end_date" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-calendar-plus me-2"></i>Rezervasyon Olustur
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rezervasyonlarim -->
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Rezervasyonlarim</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if my_reservations %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Alet</th>
+                                        <th>Sahip</th>
+                                        <th>Tarihler</th>
+                                        <th>Durum</th>
+                                        <th>Islemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for res in my_reservations %}
+                                    <tr>
+                                        <td>{{ res[0] }}</td>
+                                        <td>{{ res[7] }}</td>
+                                        <td>{{ res[8] }}</td>
+                                        <td>{{ res[3] }} - {{ res[4] }}</td>
+                                        <td>
+                                            <span
+                                                class="badge bg-{% if res[5] == 'completed' %}success{% elif res[5] == 'approved' %}primary{% elif res[5] == 'pending' %}warning{% else %}secondary{% endif %}">
+                                                {% if res[5] == 'completed' %}Tamamlandi{% elif res[5] == 'approved'
+                                                %}Onaylandi{% elif res[5] == 'pending' %}Beklemede{% else %}Iptal{%
+                                                endif %}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if res[5] in ['pending'] %}
+                                            <form action="/reservations/delete/{{ res[0] }}" method="POST"
+                                                class="d-inline">
+                                                <button type="submit" class="btn btn-danger btn-sm">Iptal</button>
+                                            </form>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center mb-0">Henuz rezervasyonunuz yok.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gelen Talepler -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Gelen Talepler</h5>
+            </div>
+            <div class="card-body">
+                {% if tool_reservations %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Alet</th>
+                                <th>Talep Eden</th>
+                                <th>Tarihler</th>
+                                <th>Durum</th>
+                                <th>Islemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for res in tool_reservations %}
+                            <tr>
+                                <td>{{ res[0] }}</td>
+                                <td>{{ res[7] }}</td>
+                                <td>{{ res[8] }}</td>
+                                <td>{{ res[3] }} - {{ res[4] }}</td>
+                                <td>
+                                    <span
+                                        class="badge bg-{% if res[5] == 'completed' %}success{% elif res[5] == 'approved' %}primary{% elif res[5] == 'pending' %}warning{% else %}secondary{% endif %}">
+                                        {% if res[5] == 'completed' %}Tamamlandi{% elif res[5] == 'approved'
+                                        %}Onaylandi{% elif res[5] == 'pending' %}Beklemede{% else %}Iptal{% endif %}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if res[5] == 'pending' %}
+                                    <form action="/reservations/update/{{ res[0] }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="status" value="approved">
+                                        <button type="submit" class="btn btn-success btn-sm">Onayla</button>
+                                    </form>
+                                    {% endif %}
+                                    {% if res[5] == 'approved' %}
+                                    <form action="/reservations/update/{{ res[0] }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="status" value="completed">
+                                        <button type="submit" class="btn btn-primary btn-sm">Tamamla</button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center mb-0">Aletleriniz icin talep bulunmuyor.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- PUANLAR SEKMESI -->
+    <div class="tab-pane fade" id="ratings" role="tabpanel">
+        <div class="row g-4">
+            <!-- Puan Ver -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-star me-2"></i>Puan Ver</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if ratable_reservations %}
+                        <form action="/ratings/add" method="POST">
+                            <div class="mb-3">
+                                <label for="rating-res" class="form-label">Islem Sec</label>
+                                <select class="form-select" id="rating-res" name="reservation_id" required
+                                    onchange="updateRatedUser(this)">
+                                    <option value="">-- Secin --</option>
+                                    {% for res in ratable_reservations %}
+                                    <option value="{{ res[0] }}" data-user-id="{{ res[2] }}"
+                                        data-user-name="{{ res[3] }}">
+                                        {{ res[1] }} ({{ res[3] }} ile)
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <input type="hidden" id="rated-user-id" name="rated_user_id">
+                            <div class="mb-3">
+                                <label for="rating-score" class="form-label">Puan (1-5)</label>
+                                <select class="form-select" id="rating-score" name="score" required>
+                                    <option value="5">5 - Mukemmel</option>
+                                    <option value="4">4 - Iyi</option>
+                                    <option value="3">3 - Orta</option>
+                                    <option value="2">2 - Kotu</option>
+                                    <option value="1">1 - Cok Kotu</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="rating-comment" class="form-label">Yorum</label>
+                                <textarea class="form-control" id="rating-comment" name="comment" rows="2"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-warning w-100">
+                                <i class="bi bi-star me-2"></i>Puan Gonder
+                            </button>
+                        </form>
+                        {% else %}
+                        <p class="text-muted text-center">Puanlanacak tamamlanmis islem yok.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aldigim Puanlar -->
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-star-fill me-2"></i>Aldigim Puanlar</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if my_ratings %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Gonderen</th>
+                                        <th>Puan</th>
+                                        <th>Yorum</th>
+                                        <th>Tarih</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for rating in my_ratings %}
+                                    <tr>
+                                        <td>{{ rating[7] }}</td>
+                                        <td>
+                                            {% for i in range(rating[4]) %}
+                                            <i class="bi bi-star-fill text-warning"></i>
+                                            {% endfor %}
+                                            {% for i in range(5 - rating[4]) %}
+                                            <i class="bi bi-star text-muted"></i>
+                                            {% endfor %}
+                                        </td>
+                                        <td>{{ rating[5] if rating[5] else '-' }}</td>
+                                        <td>{{ rating[6] }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center mb-0">Henuz puan almamissiniz.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RAPORLAR SEKMESI -->
+    <div class="tab-pane fade" id="reports" role="tabpanel">
+        <div class="row g-4">
+            <!-- Aktivite Raporu -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-activity me-2"></i>Aktivite Raporu
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if activity_report %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Tur</th>
+                                        <th>Alet</th>
+                                        <th>Kisi</th>
+                                        <th>Tarih</th>
+                                        <th>Durum</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for activity in activity_report %}
+                                    <tr>
+                                        <td>
+                                            <span
+                                                class="badge bg-{% if activity[0] == 'borrowed' %}primary{% else %}success{% endif %}">
+                                                {% if activity[0] == 'borrowed' %}Aldim{% else %}Verdim{% endif %}
+                                            </span>
+                                        </td>
+                                        <td>{{ activity[1] }}</td>
+                                        <td>{{ activity[2] }}</td>
+                                        <td>{{ activity[3] }}</td>
+                                        <td>
+                                            <span
+                                                class="badge bg-{% if activity[4] == 'completed' %}success{% elif activity[4] == 'approved' %}primary{% elif activity[4] == 'pending' %}warning{% else %}secondary{% endif %}">
+                                                {% if activity[4] == 'completed' %}Tamamlandı{% elif activity[4] ==
+                                                'approved' %}Onaylandı{% elif activity[4] == 'pending' %}Beklemede{%
+                                                else %}İptal{% endif %}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center mb-0">Aktivite bulunamadi.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- En Cok Puanlanan Kullanicilar -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-trophy me-2"></i>En Guvenilir Kullanicilar
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if top_rated_users %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Kullanici</th>
+                                        <th>Ort. Puan</th>
+                                        <th>Toplam Puan</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for u in top_rated_users %}
+                                    <tr>
+                                        <td>{{ u[1] }}</td>
+                                        <td>
+                                            <span class="trust-score">
+                                                <i class="bi bi-star-fill"></i>
+                                                {{ "%.2f"|format(u[2]) }}
+                                            </span>
+                                        </td>
+                                        <td>{{ u[3] }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center mb-0">Yuksek puanli kullanici yok.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hic Rezerve Edilmemis Aletler -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-box-seam me-2"></i>Hic Rezerve Edilmemis Aletler
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if never_reserved_tools %}
+                <div class="row">
+                    {% for tool in never_reserved_tools %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body py-2">
+                                <strong>{{ tool[1] }}</strong>
+                                <br><small class="text-muted">{{ tool[2] }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center mb-0">Tum aletler en az bir kez rezerve edilmis.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if user.role == 'admin' %}
+    <!-- YONETIM SEKMESI -->
+    <div class="tab-pane fade" id="admin" role="tabpanel">
+        <div class="row g-4">
+            <!-- Tum Kullanicilar -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0"><i class="bi bi-people me-2"></i>Tum Kullanicilar</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if all_users %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Kullanici</th>
+                                        <th>Rol</th>
+                                        <th>Guven</th>
+                                        <th>Islem</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for u in all_users %}
+                                    <tr>
+                                        <td>{{ u[0] }}</td>
+                                        <td>{{ u[1] }}</td>
+                                        <td>
+                                            <span
+                                                class="badge bg-{% if u[4] == 'admin' %}danger{% else %}info{% endif %}">
+                                                {% if u[4] == 'admin' %}Yonetici{% else %}Kullanici{% endif %}
+                                            </span>
+                                        </td>
+                                        <td>{{ "%.2f"|format(u[5]) if u[5] else '0.00' }}</td>
+                                        <td>
+                                            {% if u[0] != user.user_id %}
+                                            <form action="/admin/users/delete/{{ u[0] }}" method="POST" class="d-inline"
+                                                onsubmit="return confirm('{{ u[1] }} kullanicisini silmek istediginize emin misiniz?');">
+                                                <button type="submit" class="btn btn-danger btn-sm">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tum Aletler -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0"><i class="bi bi-tools me-2"></i>Tum Aletler</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if all_tools %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Alet</th>
+                                        <th>Sahip</th>
+                                        <th>Durum</th>
+                                        <th>Islem</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for tool in all_tools %}
+                                    <tr>
+                                        <td>{{ tool[0] }}</td>
+                                        <td>{{ tool[2] }}</td>
+                                        <td>{{ tool[8] }}</td>
+                                        <td>
+                                            <span
+                                                class="badge bg-{% if tool[5] == 'available' %}success{% elif tool[5] == 'reserved' %}warning{% else %}secondary{% endif %}">
+                                                {% if tool[5] == 'available' %}Musait{% elif tool[5] == 'reserved'
+                                                %}Rezerve{% else %}Bakim{% endif %}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <form action="/tools/delete/{{ tool[0] }}" method="POST" class="d-inline"
+                                                onsubmit="return confirm('{{ tool[2] }} aletini silmek istediginize emin misiniz?');">
+                                                <button type="submit" class="btn btn-danger btn-sm">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function updateRatedUser(select) {
+        var option = select.options[select.selectedIndex];
+        document.getElementById('rated-user-id').value = option.dataset.userId || '';
+    }
+</script>
+{% endblock %}

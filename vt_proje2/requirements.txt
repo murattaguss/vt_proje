@@ -1,7 +1,0 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-psycopg
-psycopg-binary
-jinja2
-python-multipart
