@@ -63,8 +63,8 @@ CREATE TABLE reservations (
     reservation_id SERIAL PRIMARY KEY,
     tool_id INTEGER NOT NULL,
     borrower_id INTEGER NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
+    start_date TIMESTAMP NOT NULL,
+    end_date TIMESTAMP NOT NULL,
     status VARCHAR(20) DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -136,7 +136,7 @@ RETURNS TABLE(
     activity_type VARCHAR,
     tool_name VARCHAR,
     partner_name VARCHAR,
-    activity_date DATE,
+    activity_date TIMESTAMP,
     status VARCHAR
 )
 LANGUAGE plpgsql
@@ -187,8 +187,8 @@ $$;
 -- FONKSİYON 3: Tarih aralığı için alet müsaitliğini kontrol et
 CREATE OR REPLACE FUNCTION check_tool_availability(
     p_tool_id INTEGER,
-    p_start_date DATE,
-    p_end_date DATE
+    p_start_date TIMESTAMP,
+    p_end_date TIMESTAMP
 )
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -202,7 +202,7 @@ BEGIN
     WHERE tool_id = p_tool_id
       AND status IN ('pending', 'approved')
       AND (
-          (start_date <= p_end_date AND end_date >= p_start_date)
+          (start_date < p_end_date AND end_date > p_start_date)
       );
     
     RETURN v_conflict_count = 0;
@@ -246,7 +246,7 @@ BEGIN
     WHERE tool_id = NEW.tool_id
       AND reservation_id != COALESCE(NEW.reservation_id, 0)
       AND status IN ('pending', 'approved')
-      AND (start_date <= NEW.end_date AND end_date >= NEW.start_date);
+       AND (start_date < NEW.end_date AND end_date > NEW.start_date);
     
     IF v_conflict_count > 0 THEN
         RAISE EXCEPTION 'This tool is already reserved for the selected dates.';
@@ -317,16 +317,16 @@ INSERT INTO tools (owner_id, name, description, category, status) VALUES
 (9, 'Zimpara Makinesi', 'Elektrikli zimpara, titresimli', 'Elektrikli Alet', 'available');
 
 INSERT INTO reservations (tool_id, borrower_id, start_date, end_date, status) VALUES
-(1000, 3, '2026-01-10', '2026-01-12', 'completed'),
-(1001, 4, '2026-01-15', '2026-01-16', 'completed'),
-(1002, 2, '2026-01-18', '2026-01-20', 'completed'),
-(1003, 5, '2026-01-20', '2026-01-21', 'approved'),
-(1004, 6, '2026-01-14', '2026-01-17', 'approved'),
-(1005, 7, '2026-01-22', '2026-01-25', 'pending'),
-(1006, 8, '2026-01-25', '2026-01-28', 'pending'),
-(1007, 9, '2026-01-20', '2026-01-22', 'completed'),
-(1008, 10, '2026-01-28', '2026-01-30', 'pending'),
-(1009, 2, '2026-01-30', '2026-02-01', 'pending');
+(1000, 3, '2026-01-10 09:00:00', '2026-01-12 17:00:00', 'completed'),
+(1001, 4, '2026-01-15 10:00:00', '2026-01-16 10:00:00', 'completed'),
+(1002, 2, '2026-01-18 08:30:00', '2026-01-20 18:00:00', 'completed'),
+(1003, 5, '2026-01-20 12:00:00', '2026-01-21 12:00:00', 'approved'),
+(1004, 6, '2026-01-14 14:00:00', '2026-01-17 11:00:00', 'approved'),
+(1005, 7, '2026-01-22 09:00:00', '2026-01-25 09:00:00', 'pending'),
+(1006, 8, '2026-01-25 15:00:00', '2026-01-28 10:00:00', 'pending'),
+(1007, 9, '2026-01-20 09:00:00', '2026-01-22 17:00:00', 'completed'),
+(1008, 10, '2026-01-28 10:00:00', '2026-01-30 16:00:00', 'pending'),
+(1009, 2, '2026-01-30 08:00:00', '2026-02-01 20:00:00', 'pending');
 
 INSERT INTO ratings (reservation_id, rater_id, rated_user_id, score, comment) VALUES
 (1, 3, 2, 5, 'Mükemmel alet, sorunsuz çalışıyor. Kesinlikle tavsiye ederim!'),
