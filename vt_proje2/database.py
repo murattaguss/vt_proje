@@ -12,10 +12,9 @@ from contextlib import contextmanager
 import os
 
 # Database configuration
-# Database configuration
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+psycopg://postgres:postgres@localhost:5433/toolshare"
+    "postgresql+psycopg://postgres:123456@localhost:5432/toolshare"
 )
 
 # SQLAlchemy engine and session setup
